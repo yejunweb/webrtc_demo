@@ -1,0 +1,18 @@
+{
+    "appenders": {
+        "file": {
+            "type": "file",
+            "filename": "log4js.log",
+            "layout": {
+                "type": "pattern",
+                "pattern": "%r %p - %m"
+            }
+        }
+    },
+    "categories": {
+       "default": {
+          "appenders": ["file"],
+          "level": "debug"
+        }
+    }
+}
