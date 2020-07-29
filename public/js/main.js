@@ -43,10 +43,28 @@ btnCall.onclick = function() {
   call()
 }
 
+function getOffer(desc) {
+  pc1.setLocalDescription(desc)
+  // 
+  pc2.setRemoteDescription(desc)
+  // 
+  pc2.createAnswer().then(res => {
+    console.log(res)
+    getAnswer(res)
+  })
+}
+
+function getAnswer(desc) {
+  pc2.setLocalDescription(desc)
+  // 
+  pc1.setRemoteDescription(desc)
+}
+
 // 
 function call() {
   pc1 = new RTCPeerConnection()
   pc2 = new RTCPeerConnection()
+
   // 收集响应候选列表
   pc1.onicecandidate = function(e) {
     pc2.addIceCandidate(e.candidate)
@@ -54,8 +72,11 @@ function call() {
   pc2.onicecandidate = function(e) {
     pc1.addIceCandidate(e.candidate)
   }
+
+  // 
   pc2.ontrack = function(e) {
     console.log(e)
+    remoteVideo.srcObject = e.streams[0]
   }
 
   // getTracks获取本地的所有音视屏轨
@@ -71,5 +92,6 @@ function call() {
   }
   pc1.createOffer(offerOptions).then(res => {
     console.log(res)
+    getOffer(res)
   })
 }
