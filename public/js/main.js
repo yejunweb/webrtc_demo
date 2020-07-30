@@ -16,6 +16,19 @@ var localStream // 本地流
 var pc1
 var pc2
 
+btnStart.onclick = function() {
+  initLoaclVideo()
+}
+btnCall.onclick = function() {
+  call()
+}
+btnBreak.onclick = function() {
+  pc1.close()
+  pc2.close()
+  pc1 = null
+  pc2 = null
+}
+
 // 判断是否支持视频流
 function handleJudge() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
@@ -34,29 +47,17 @@ async function initLoaclVideo() {
   }
 }
 
-btnStart.onclick = function() {
-  initLoaclVideo()
-}
-// initLoaclVideo()
-
-btnCall.onclick = function() {
-  call()
-}
-
+//  建立对等连接
 function getOffer(desc) {
   pc1.setLocalDescription(desc)
-  // 
   pc2.setRemoteDescription(desc)
   // 
   pc2.createAnswer().then(res => {
-    console.log(res)
     getAnswer(res)
   })
 }
-
 function getAnswer(desc) {
   pc2.setLocalDescription(desc)
-  // 
   pc1.setRemoteDescription(desc)
 }
 
@@ -65,7 +66,7 @@ function call() {
   pc1 = new RTCPeerConnection()
   pc2 = new RTCPeerConnection()
 
-  // 收集响应候选列表
+  // 收集响应候选列表，如pc1建立对等连接时，则向pc2中添加候选列表
   pc1.onicecandidate = function(e) {
     pc2.addIceCandidate(e.candidate)
   }
@@ -73,15 +74,14 @@ function call() {
     pc1.addIceCandidate(e.candidate)
   }
 
-  // 
+  // 获取到远端音视频流
   pc2.ontrack = function(e) {
     console.log(e)
     remoteVideo.srcObject = e.streams[0]
   }
 
-  // getTracks获取本地的所有音视屏轨
-  let allStream = localStream.getTracks()
-  allStream.forEach(track => {
+  // getTracks获取本地的所有音视频流
+  localStream.getTracks().forEach(track => {
     pc1.addTrack(track, localStream)
   })
 

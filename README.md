@@ -94,3 +94,21 @@
 
 	logger.debug('this is debug')
 
+## 
+
+	RTCPeerConnection 的属性 onicecandidate （是一个事件触发器 EventHandler） 能够让函数在事件icecandidate发生在实例  RTCPeerConnection 上时被调用。 只要本地代理ICE 需要通过信令服务器传递信息给其他对等端时就会触发。 这让本地代理与其他对等体相协商而浏览器本身在使用时无需知道任何详细的有关信令技术的细节，只需要简单地应用这种方法就可使用您选择的任何消息传递技术将ICE候选发送到远程对等方。
+
+## 1对1传输基本流程
+
+	创建 new RTCPeerConnection() 对象
+	
+	推入本地的音视频流
+	localStream.getTracks().forEach(track => {
+		pc1.addTrack(track, localStream)
+	})
+
+	创建offer createOffer
+
+	创建answer createAnswer
+
+	将远程的音视频流通过 ontrack 捕获并渲染
