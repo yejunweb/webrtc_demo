@@ -144,8 +144,8 @@ function getAnswer(desc) {
 var pcConfig = {
   'iceServers': [{
     'urls': 'turn:stun.al.learningrtc.cn:3478',
-    'credential': "mypasswd",
-    'username': "garrylea"
+    'credential': 'mypasswd',
+    'username': 'garrylea'
   }]
 }
 
