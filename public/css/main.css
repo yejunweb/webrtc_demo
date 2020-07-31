@@ -9,6 +9,38 @@ body {
     margin: 0 auto;
     display: flex;
 }
+/* room */
+.room {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+.room::after {
+    content: '';
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: url('https://cn.bing.com/th?id=OHR.TahoeBeach_ZH-CN3786728560_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp') left top no-repeat;
+    background-size: cover;
+    filter: blur(5px);
+}
+.room_item {
+    width: 500px;
+    transform: translate(-50%, -50%);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 99;
+}
+.room_item .input-group input {
+    height: 40px;
+}
+.room_item .input-group span {
+    cursor: pointer;
+}
+
 .content_left, .content_right {
     width: 50%;
     height: 100vh;

@@ -43,64 +43,34 @@ app.get('/', (req, res) => {
         res.send(data)
     })
 })
+app.get('/room/:roomId', (req, res) => {
+    fs.readFile('./views/room.html', 'utf8', (err, data) => {
+        if (err) return console.log(err)
+        res.send(data)
+    })
+})
 
 // 
-var roomList = new Array
 io.on('connection', function(socket) {
-    /**
-     * 加入房间
-     */
-    socket.on('join', data => {
-        socket.join(data.roomId)
-        io.sockets.in(data.roomId).emit('system', {
-            userName: '系统提示',
-            message: `用户（${data.userName}）加入了房间（${data.roomId}）`
-        })
-        // 添加到数组
-        roomList.push({
-            userName: data.userName,
-            roomId: data.roomId,
-            socketId: socket.id
-        })
-        let room_id = data.roomId
-        changeNumber(room_id, io.sockets.adapter.rooms[room_id].length)
-        // 关闭页面回调
-        socket.on('disconnect', () => {
-            roomList.forEach(item => {
-                if (item.socketId === socket.id) {
-                    io.sockets.in(room_id).emit('system', {
-                        userName: '系统提示',
-                        message: `用户（${data.userName}）离开了房间（${room_id}）`
-                    })
-                }
-            })
-            socket.leave(room_id)
-        })
+    // 加入房间 join joined
+    socket.on('join', room => {
+        socket.join(room)
+        // 
+        var myRoom = io.sockets.adapter.rooms[room]
+        var users = myRoom ? Object.keys(myRoom.sockets).length : 0
+        if (users > 1) {
+            io.sockets.in(room).emit('otherJoined', `其他用户[${socket.id}]加入了房间[${room}]`)
+        } else {
+            io.sockets.in(room).emit('joined', `用户[${socket.id}]加入了房间[${room}]`)
+        }
     })
-    /**
-     * 离开房间
-     */
-    socket.on('leave', data => {
-        roomList.forEach(item => {
-            if (item.socketId === socket.id) {
-                io.sockets.in(data.roomId).emit('system', {
-                    userName: '系统提示',
-                    message: `用户（${data.userName}）离开了房间（${data.roomId}）`
-                })
-            }
-        })
-        changeNumber(data.roomId, io.sockets.adapter.rooms[data.roomId].length - 1)
-        socket.leave(data.roomId)
+    // 离开房间 leave leaved
+    socket.on('leave', room => {
+        io.sockets.in(room).emit('leaved', `用户[${socket.id}]离开了房间[${room}]`)
+        socket.leave(room)
     })
-    // 发送信息
-    socket.on('message', data => {
-        io.sockets.in(data.roomId).emit('system', {
-            userName: data.userName,
-            message: data.message
-        })
+    // 发送信息 message
+    socket.on('message', (room, data) => {
+        io.sockets.in(room).emit('message', room, data)
     })
-    // 实时人数
-    function changeNumber(room, data) {
-        io.sockets.in(room).emit('number', data)
-    }
 })

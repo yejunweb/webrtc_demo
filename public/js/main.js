@@ -1,4 +1,14 @@
-// 配置
+var localVideo = document.querySelector('.local_video video')
+var remoteVideo = document.querySelector('.remote_video video')
+var btnStart = document.querySelector('.button_group .start')
+var btnBreak = document.querySelector('.button_group .break')
+var localStream
+var socket
+var roomId
+var pc
+var state
+
+// 参数配置
 var streamOptions = {
   video: {
     width: 960,
@@ -7,92 +17,142 @@ var streamOptions = {
   },
   audio: false
 }
-var localVideo = document.querySelector('.local_video video')
-var remoteVideo = document.querySelector('.remote_video video')
-var btnStart = document.querySelector('.button_group .start')
-var btnCall = document.querySelector('.button_group .call')
-var btnBreak = document.querySelector('.button_group .break')
-var localStream // 本地流
-var pc1
-var pc2
-
-btnStart.onclick = function() {
-  initLoaclVideo()
-}
-btnCall.onclick = function() {
-  call()
-}
-btnBreak.onclick = function() {
-  pc1.close()
-  pc2.close()
-  pc1 = null
-  pc2 = null
+var offerOptions = {
+  offerToReceiveVideo: 1,
+  offerToReceiveAudio: 0
 }
 
-// 判断是否支持视频流
+// 获取房间号
+function getParams() {
+  let urlParamsList = window.location.pathname.split('/')
+  let urlParams = ''
+  urlParamsList.forEach((item, i) => {
+    if (item === 'room') {
+      urlParams = urlParamsList[i + 1]
+    }
+  })
+  return urlParams
+}
+roomId = getParams()
+
+// 是否支持视频流
 function handleJudge() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
     alert('对不起，您的浏览器不支持摄像功能！')
   }
 }
-handleJudge()
 
 // 获取摄像源
-async function initLoaclVideo() {
+async function initLocalStream() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia(streamOptions)
     localVideo.srcObject = localStream
+    createPeerConnection()
   } catch(err) {
     console.log(err)
   }
 }
 
-//  建立对等连接
-function getOffer(desc) {
-  console.log(desc.sdp) // 获取SDP
-  pc1.setLocalDescription(desc)
-  pc2.setRemoteDescription(desc)
-  // 
-  pc2.createAnswer().then(res => {
-    getAnswer(res)
+socket = io.connect()
+
+function initConnectServer() {
+  socket.emit('join', roomId)
+  // 加入后状态
+  socket.on('joined', data => {
+    console.log(data)
+    state = 'joined'
+    createPeerConnection()
+  })
+  // 其他人加入后状态
+  socket.on('otherJoined', data => {
+    console.log(data)
+    state = 'other_joined'
+    call()
+  })
+  // 其他人加入后，创建offer发送到信令服务器，返回收到offer，再创建answer
+  socket.on('message', (room, data) => {
+    // 
+    if (data.type === 'offer') {
+      console.log(data)
+      pc.setRemoteDescription(data)
+      pc.createAnswer().then(res => {
+        getAnswer(res)
+      })
+    } else if (data.type === 'answer') {
+      pc.setRemoteDescription(data)
+    } else if (data.type === 'candidate') {
+      pc.addIceCandidate(data.value)
+    }
   })
 }
+
+function breakConnectServer() {
+  socket.emit('leave', roomId)
+  socket.on('leaved', data => {
+    console.log(data)
+  })
+}
+
+function call() {
+  if (state === 'other_joined' && pc) {
+    var offerOptions = {
+			offerToRecieveAudio: 9,
+			offerToRecieveVideo: 1
+		}
+    pc.createOffer(offerOptions).then(res => {
+      getOffer(res)
+    })
+  } 
+}
+
+function getOffer(desc) {
+  pc.setLocalDescription(desc)
+  socket.emit('message', roomId, desc)
+}
+
 function getAnswer(desc) {
-  pc2.setLocalDescription(desc)
-  pc1.setRemoteDescription(desc)
+  pc.setLocalDescription(desc)
+  socket.emit('message', roomId, desc)
+}
+
+var pcConfig = {
+  'iceServers': [{
+    'urls': 'turn:stun.al.learningrtc.cn:3478',
+    'credential': "mypasswd",
+    'username': "garrylea"
+  }]
+}
+function createPeerConnection() {
+  if (!pc) {
+    pc = new RTCPeerConnection(pcConfig)
+    pc.onicecandidate = function(e) {
+      if (e.candidate) {
+        pc.addIceCandidate(e.candidate)
+        socket.emit('message', roomId, {
+          type: 'candidate',
+					value: e.candidate
+        })
+      }
+    }
+    pc.ontrack = function(e) {
+      console.log(e)
+      remoteVideo.srcObject = e.streams[0]
+    }
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      pc.addTrack(track, localStream)
+    })
+  }
 }
 
 // 
-function call() {
-  pc1 = new RTCPeerConnection()
-  pc2 = new RTCPeerConnection()
-
-  // 收集响应候选列表，如pc1建立对等连接时，则向pc2中添加候选列表
-  pc1.onicecandidate = function(e) {
-    pc2.addIceCandidate(e.candidate)
-  }
-  pc2.onicecandidate = function(e) {
-    pc1.addIceCandidate(e.candidate)
-  }
-
-  // 获取到远端音视频流
-  pc2.ontrack = function(e) {
-    console.log(e)
-    remoteVideo.srcObject = e.streams[0]
-  }
-
-  // getTracks获取本地的所有音视频流
-  localStream.getTracks().forEach(track => {
-    pc1.addTrack(track, localStream)
-  })
-
-  // 创建媒体协商
-  var offerOptions = {
-    offerToReceiveVideo: 1,
-    offerToReceiveAudio: 0
-  }
-  pc1.createOffer(offerOptions).then(res => {
-    console.log(res)
-    getOffer(res)
-  })
+btnStart.onclick = function() {
+  initConnectServer()
 }
+btnBreak.onclick = function() {
+  breakConnectServer()
+}
+handleJudge()
+initLocalStream()
+initConnectServer()

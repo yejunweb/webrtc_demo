@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC_demo</title>
+    <link rel="stylesheet" href="/public/css/bootstrap.css">
+    <link rel="stylesheet" href="/public/css/main.css">
+</head>
+<body>
+    <div class="content_left">
+        <div class="local_video">
+            <video autoplay playsinline></video>
+        </div>
+        <!--  -->
+        <div class="button_group">
+            <button type="button" class="btn btn-default break">断开连接</button>
+            <button type="button" class="btn btn-default start">重新连接</button>
+        </div>
+    </div>
+    <div class="content_right">
+        <div class="remote_video">
+            <video autoplay playsinline></video>
+        </div>
+    </div>
+    <!-- WebRTC 兼容处理 -->
+    <!-- <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script> -->
+    <script src="/public/js/adapter-latest.js"></script>
+    <script src="/public/js/socket.io.js"></script>
+    <script src="/public/js/jquery.js"></script>
+    <script src="/public/js/bootstrap.js"></script>
+    <script src="/public/js/main.js"></script>
+</body>
+</html>
