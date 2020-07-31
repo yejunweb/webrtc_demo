@@ -71,6 +71,6 @@ io.on('connection', function(socket) {
     })
     // 发送信息 message
     socket.on('message', (room, data) => {
-        io.sockets.in(room).emit('message', room, data)
+        socket.to(room).emit('message', room, data)
     })
 })

@@ -47,7 +47,7 @@ async function initLocalStream() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia(streamOptions)
     localVideo.srcObject = localStream
-    createPeerConnection()
+    initConnectServer()
   } catch(err) {
     console.log(err)
   }
@@ -67,19 +67,21 @@ function initConnectServer() {
   socket.on('otherJoined', data => {
     console.log(data)
     state = 'other_joined'
+    createPeerConnection()
     call()
   })
   // 其他人加入后，创建offer发送到信令服务器，返回收到offer，再创建answer
   socket.on('message', (room, data) => {
     // 
-    if (data.type === 'offer') {
-      console.log(data)
-      pc.setRemoteDescription(data)
+    if(data === null || data === undefined){
+			return
+		} else if (data.type === 'offer') {
+      pc.setRemoteDescription(new RTCSessionDescription(data))
       pc.createAnswer().then(res => {
         getAnswer(res)
       })
     } else if (data.type === 'answer') {
-      pc.setRemoteDescription(data)
+      pc.setRemoteDescription(new RTCSessionDescription(data))
     } else if (data.type === 'candidate') {
       pc.addIceCandidate(data.value)
     }
@@ -91,6 +93,30 @@ function breakConnectServer() {
   socket.on('leaved', data => {
     console.log(data)
   })
+}
+
+function createPeerConnection() {
+  if (!pc) {
+    pc = new RTCPeerConnection(pcConfig)
+    pc.onicecandidate = function(e) {
+      if (e.candidate) {
+        pc.addIceCandidate(e.candidate)
+        socket.emit('message', roomId, {
+          type: 'candidate',
+					value: e.candidate
+        })
+      }
+    }
+    pc.ontrack = function(e) {
+      console.log(e)
+      remoteVideo.srcObject = e.streams[0]
+    }
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      pc.addTrack(track, localStream)
+    })
+  }
 }
 
 function call() {
@@ -122,29 +148,6 @@ var pcConfig = {
     'username': "garrylea"
   }]
 }
-function createPeerConnection() {
-  if (!pc) {
-    pc = new RTCPeerConnection(pcConfig)
-    pc.onicecandidate = function(e) {
-      if (e.candidate) {
-        pc.addIceCandidate(e.candidate)
-        socket.emit('message', roomId, {
-          type: 'candidate',
-					value: e.candidate
-        })
-      }
-    }
-    pc.ontrack = function(e) {
-      console.log(e)
-      remoteVideo.srcObject = e.streams[0]
-    }
-  }
-  if (localStream) {
-    localStream.getTracks().forEach(track => {
-      pc.addTrack(track, localStream)
-    })
-  }
-}
 
 // 
 btnStart.onclick = function() {
@@ -155,4 +158,3 @@ btnBreak.onclick = function() {
 }
 handleJudge()
 initLocalStream()
-initConnectServer()
