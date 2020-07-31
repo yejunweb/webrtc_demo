@@ -49,6 +49,7 @@ async function initLoaclVideo() {
 
 //  建立对等连接
 function getOffer(desc) {
+  console.log(desc.sdp) // 获取SDP
   pc1.setLocalDescription(desc)
   pc2.setRemoteDescription(desc)
   // 
